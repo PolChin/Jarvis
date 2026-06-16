@@ -172,12 +172,17 @@ def get_llm(role: str = "fast") -> LLMClient:
     provider = os.environ.get("PHOENIX_LLM", "gemini").lower()
 
     if provider == "gemini":
-        model = "gemini-2.5-flash" if role == "fast" else "gemini-2.5-pro"
+        default_model = "gemini-2.5-flash" if role == "fast" else "gemini-2.5-pro"
+        env_var = "GEMINI_FAST_MODEL" if role == "fast" else "GEMINI_DEEP_MODEL"
+        model = os.environ.get(env_var, default_model)
         return GeminiClient(model=model)
     elif provider == "claude":
-        model = "claude-haiku-4-5-20251001" if role == "fast" else "claude-sonnet-4-6"
+        default_model = "claude-haiku-4-5-20251001" if role == "fast" else "claude-sonnet-4-6"
+        env_var = "CLAUDE_FAST_MODEL" if role == "fast" else "CLAUDE_DEEP_MODEL"
+        model = os.environ.get(env_var, default_model)
         return ClaudeClient(model=model)
     raise ValueError(f"Unknown PHOENIX_LLM provider: {provider}")
+
 
 
 if __name__ == "__main__":
