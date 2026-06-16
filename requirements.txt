@@ -1,0 +1,21 @@
+# Project Phoenix demo — Phase 0 deps
+# Python 3.11+
+
+# MCP servers (sub-agents) + client
+fastmcp>=2.0
+
+# LLM providers (install at least one; default is gemini)
+google-genai>=1.20        # Gemini  (PHOENIX_LLM=gemini, GEMINI_API_KEY)
+anthropic>=0.40           # Claude  (PHOENIX_LLM=claude, ANTHROPIC_API_KEY)
+
+# Phase 1+ (orchestration) — not used yet in Phase 0, listed so Antigravity
+# pre-installs them; safe to comment out until Phase 1:
+langgraph>=0.2
+langchain-core>=0.3
+
+# Phase 2 (UI bridge)
+websockets>=12
+
+# Environment variables loading
+python-dotenv>=1.0.0
+
