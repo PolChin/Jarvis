@@ -1,0 +1,22 @@
+Phoenix Phase 2 — WebSocket bridge + sequence prototype UI
+==========================================================
+Unzip at repo root (over your Phase 1 + Mode B tree). Files:
+
+  orchestrator/inquiries.py            (NEW) demo inquiries + variants, shared by CLI & server
+  orchestrator/server.py               (NEW) FastAPI WS bridge: python -m orchestrator.server
+  orchestrator/sequence_prototype.html (NEW) the UI, served at / and connects to /ws
+  orchestrator/workflow.py             (REPLACES) adds swappable event sink (set_event_sink)
+  orchestrator/run.py                  (REPLACES) now uses inquiries.py (same CLI output)
+  requirements.txt                     (REPLACES) adds fastapi + uvicorn[standard]
+  README.md                            (REPLACES) adds "Run Phase 2"
+
+Install new deps, then run:
+  python -m pip install -r requirements.txt
+  python -m orchestrator.server        # open http://127.0.0.1:8000, click a variant
+
+CLI still works unchanged:
+  python -m orchestrator.run --mode-b   # etc.
+
+git add orchestrator/ requirements.txt README.md
+git commit -m "Phase 2: WebSocket bridge + sequence prototype UI (send instead of print)"
+git push

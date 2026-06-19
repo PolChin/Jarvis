@@ -1,0 +1,4 @@
+customer,credit_line,ar_exposure
+CUST-001,5000000,2600000
+CUST-002,5000000,1000000
+CUST-099,1000000,0

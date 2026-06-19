@@ -1,6 +1,9 @@
 .venv/
+.git/
 __pycache__/
 *.pyc
 .env
 cmp/
-APPLY_FULL.txt
+_archive/
+*.zip
+*.bundle

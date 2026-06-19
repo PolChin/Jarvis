@@ -1,0 +1,5 @@
+customer,grade,remain_sq,grade_class
+CUST-001,D777C,500,Fast
+CUST-001,D388C,120,Slow
+CUST-002,D777C,2000,Fast
+CUST-099,D477C,50,Fast

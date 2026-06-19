@@ -1,0 +1,20 @@
+Phoenix Phase 3 — Layer B negotiation + JARVIS intent chat
+==========================================================
+Unzip at repo root (over Phase 1 + Mode B + Phase 2). Files:
+  common/a2a.py                        (NEW)  A2A messages + task lifecycle
+  mcp_servers/sigtempo.py              (NEW)  SIGMA/TEMPO production probes
+  orchestrator/layer_b.py              (NEW)  SKYNET feasibility + JARVIS desirability
+  orchestrator/handle.py               (NEW)  Layer A -> Layer B on escalation
+  orchestrator/negotiate.py            (NEW)  CLI: python -m orchestrator.negotiate
+  orchestrator/intent.py               (NEW)  JARVIS assistant hat: LLM intent routing
+  orchestrator/workflow.py             (REPLACES) +emit_event, +veto capture
+  orchestrator/server.py               (REPLACES) Layer B stream + chat + /llm-status
+  orchestrator/sequence_prototype.html (REPLACES) sticky header + chat box + LLM badge
+  README.md                            (REPLACES)
+No new deps. Runs offline (rules mode). With a key, intent parse + JARVIS
+recommendation go through the LLM. Run:
+  python -m orchestrator.server     # open http://127.0.0.1:8000, type an inquiry in the chat box
+  python -m orchestrator.negotiate --shortfall
+git add common/a2a.py mcp_servers/sigtempo.py orchestrator/ README.md
+git commit -m "Phase 3: Layer B negotiation + JARVIS intent chat + LLM status badge"
+git push

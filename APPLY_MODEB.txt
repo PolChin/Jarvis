@@ -1,0 +1,19 @@
+Phoenix Phase 1.x — ATLAS / Mode B add-on
+=========================================
+Unzip at repo root (over your current Phase 1). Changed/new files:
+
+  mcp_servers/atlas.py      (NEW) freight/carrier booking -> atp_firm
+  orchestrator/workflow.py  (REPLACES) Mode B TODO -> real ATLAS Layer-A hop
+  orchestrator/run.py       (REPLACES) --mode-b now commits; +--no-carrier +--flag-on
+  README.md                 (REPLACES) Phase 1 run section updated
+
+No new dependencies. Re-run (no API key needed):
+
+  python -m orchestrator.run --mode-b      # domestic -> ATLAS books -> COMMITTED Mode B (atp_firm)
+  python -m orchestrator.run --no-carrier  # stock OK but truck cap < qty -> ATLAS escalates (STOP)
+  python -m orchestrator.run --flag-on     # export + confirm_freight_at_commit -> Mode B inline
+  python -m orchestrator.run               # Mode A unchanged (ATLAS not called; firms later)
+
+git add mcp_servers/atlas.py orchestrator/workflow.py orchestrator/run.py README.md
+git commit -m "Phase 1.x: ATLAS server + Mode B inline (book_freight -> atp_firm)"
+git push

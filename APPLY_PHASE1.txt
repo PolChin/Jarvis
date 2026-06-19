@@ -1,0 +1,26 @@
+Phoenix Phase 1 — drop-in package
+=================================
+Unzip THIS at your repo root (github.com/PolChin/Jarvis). It preserves paths:
+
+  mcp_servers/oracle.py     (new)
+  mcp_servers/apollo.py     (new)
+  mcp_servers/wallet.py     (new)
+  mcp_servers/__init__.py   (new, empty — makes `python -m mcp_servers.x` reliable)
+  orchestrator/workflow.py  (new)
+  orchestrator/run.py        (new)
+  orchestrator/__init__.py   (new, empty)
+  README.md                  (REPLACES existing — Phase 1 run section added)
+
+Note: orchestrator/.gitkeep can be deleted (the package now has real files there).
+
+Then:
+  pip install -r requirements.txt      # adds langgraph; fastmcp already from Phase 0
+  python -m orchestrator.run            # -> COMMITTED, Mode A, provisional ATP 2026-03-18
+  python -m orchestrator.run --fail-credit   # -> STOP at WALLET
+  python -m orchestrator.run --shortfall     # -> STOP at T-800
+  python -m orchestrator.run --mode-b        # -> Mode B branch point (TODO stub)
+
+git add mcp_servers/ orchestrator/ README.md
+git rm orchestrator/.gitkeep
+git commit -m "Phase 1: Layer-A workflow engine + ORACLE/APOLLO/WALLET gates"
+git push

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phoenix · Sequence Prototype (Phase 2)</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161c24; --line:#2a3340; --ink:#e6edf3; --muted:#8b97a6;
+    --accent:#4aa3ff; --call:#4aa3ff; --ok:#3fb950; --bad:#f85149; --note:#d29922;
+    --lane:#3a4654;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);height:100vh;
+    display:flex;flex-direction:column;overflow:hidden;
+    font:14px/1.45 ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{flex:0 0 auto}
+  /* two columns: chat on the left, the sequence/lifelines on the right */
+  #main{flex:1;display:flex;min-height:0}
+  #leftpane{display:flex;flex-direction:column;width:40%;min-width:340px;max-width:560px;
+    border-right:1px solid var(--line);min-height:0;background:var(--panel)}
+  #rightpane{flex:1;display:flex;flex-direction:column;min-width:0;overflow-y:auto}
+  @media(max-width:880px){
+    #main{flex-direction:column}
+    #leftpane{width:auto;max-width:none;height:48%;border-right:none;
+      border-bottom:1px solid var(--line)}
+  }
+  header{display:flex;align-items:center;gap:14px;padding:14px 18px;
+    border-bottom:1px solid var(--line);background:var(--panel)}
+  header h1{font-size:15px;margin:0;font-weight:650;letter-spacing:.2px}
+  header .sub{color:var(--muted);font-size:12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--bad);
+    box-shadow:0 0 0 3px rgba(248,81,73,.15);transition:.3s}
+  .dot.on{background:var(--ok);box-shadow:0 0 0 3px rgba(63,185,80,.15)}
+  .bar{display:flex;flex-wrap:nowrap;gap:6px;padding:8px 14px;
+    border-bottom:1px solid var(--line);align-items:center;overflow-x:auto}
+  button{background:#1c2530;color:var(--ink);border:1px solid var(--line);
+    border-radius:7px;padding:5px 10px;font-size:11.5px;cursor:pointer;
+    transition:.15s;font-weight:550;white-space:nowrap;flex:0 0 auto}
+  button:hover:not(:disabled){border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button .d{display:block;color:var(--muted);font-size:10.5px;font-weight:400;
+    margin-top:2px;max-width:230px;white-space:normal}
+  #clear{margin-left:auto}
+  #head{position:sticky;top:0;z-index:5;background:var(--bg);
+    padding:6px 18px 4px;border-bottom:1px solid var(--line)}
+  #head svg{display:block;margin:0 auto;width:100%;max-width:1320px;height:auto}
+  #stage{padding:6px 18px 40px}
+  svg{display:block;margin:0 auto;width:100%;max-width:1320px;height:auto}
+  .actor rect{fill:#1c2530;stroke:var(--line)}
+  .actor text{fill:var(--ink);font-weight:600;font-size:12.5px}
+  .lifeline{stroke:var(--lane);stroke-width:1.5;stroke-dasharray:3 5}
+  .arrow{stroke-width:1.8;fill:none}
+  .arrow.call{stroke:var(--call)}
+  .arrow.ret{stroke:var(--ok);stroke-dasharray:6 4}
+  .arrow.bad{stroke:var(--bad);stroke-dasharray:6 4}
+  .head{stroke:none}
+  .lbl{fill:var(--ink);font-size:11.5px}
+  .lbl.bad{fill:var(--bad)}
+  .row{opacity:0;transform:translateY(6px);
+    animation:in .35s ease forwards}
+  @keyframes in{to{opacity:1;transform:none}}
+  #banner{margin:0 18px;padding:14px 16px;border-radius:10px;display:none;
+    font-size:13.5px;border:1px solid var(--line);background:var(--panel)}
+  #banner.show{display:block}
+  #banner.ok{border-color:var(--ok)}
+  #banner.bad{border-color:var(--bad)}
+  #banner .t{font-weight:700;font-size:14px}
+  #banner.ok .t{color:var(--ok)} #banner.bad .t{color:var(--bad)}
+  #banner .m{color:var(--muted);margin-top:4px}
+  code{background:#0c1117;padding:1px 6px;border-radius:5px;color:#cdd5df}
+  .llm{font-size:12px;padding:3px 9px;border-radius:20px;border:1px solid var(--line);
+    background:#1c2530;color:var(--muted)}
+  .llm.on{border-color:var(--ok);color:var(--ok)}
+  .llm.off{border-color:var(--note);color:var(--note)}
+  #chatwrap{flex:1;display:flex;flex-direction:column;min-height:0;
+    padding:10px 14px;background:var(--panel)}
+  #chatrow{display:flex;gap:8px;flex:0 0 auto}
+  #chatin{flex:1;background:#0c1117;border:1px solid var(--line);border-radius:8px;
+    padding:9px 12px;color:var(--ink);font-size:13px}
+  #chatin:focus{outline:none;border-color:var(--accent)}
+  #chatsend{white-space:nowrap}
+  #chatlog{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;
+    gap:6px;margin-bottom:8px}
+  #chatlog:empty{display:none}
+  .choicewrap{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}
+  .choicebtn{background:var(--panel);border:1px solid var(--accent);color:var(--accent);
+    border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
+  .choicebtn:hover:not(:disabled){background:var(--accent);color:#06251a}
+  .choicebtn:disabled{opacity:.45;cursor:default;border-color:var(--line);color:var(--muted)}
+  .msg{font-size:12.5px;padding:7px 11px;border-radius:9px;max-width:80%}
+  .msg.user{align-self:flex-end;background:#243244;color:#fff}
+  .msg.jarvis{align-self:flex-start;background:#15202b;border:1px solid var(--line)}
+  .msg .who{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .msg .badge{font-weight:700}
+  .msg .badge.LLM{color:var(--ok)} .msg .badge.rules{color:var(--note)}
+  #llmpanel{flex:0 0 auto;max-height:40%;overflow-y:auto;margin:0;padding:8px 14px;
+    display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);
+    background:var(--bg)}
+  #llmpanel:empty{display:none}
+  .llmcard{border:1px solid var(--line);border-radius:9px;background:var(--panel);
+    padding:10px 12px;font-size:12px}
+  .llmcard .hd{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .llmcard .tag{font-weight:700;font-size:11px;padding:2px 8px;border-radius:12px}
+  .llmcard .tag.on{background:rgba(63,185,80,.15);color:var(--ok)}
+  .llmcard .tag.off{background:rgba(210,153,34,.15);color:var(--note)}
+  .llmcard .stage{font-weight:600}
+  .llmcard .model{color:var(--muted);margin-left:auto;font-size:11px}
+  .llmcard pre{margin:4px 0 0;white-space:pre-wrap;word-break:break-word;
+    background:#0c1117;border-radius:6px;padding:8px;color:#cdd5df;
+    max-height:160px;overflow:auto;font-size:11px;line-height:1.4}
+  .llmcard .pl{color:var(--muted);font-size:10.5px;margin-top:6px}
+  .llmcard .llmbody{display:none}
+  .llmcard .llmbody.open{display:block}
+  .llmcard .llmtoggle{margin-left:8px;background:#0c1117;border:1px solid var(--line);
+    color:var(--muted);border-radius:6px;font-size:11px;padding:2px 10px;cursor:pointer}
+  .llmcard .llmtoggle:hover{border-color:var(--accent);color:var(--accent)}
+  #datawrap{padding:8px 18px;border-bottom:1px solid var(--line)}
+  #datatoggle{background:none;border:none;color:var(--accent);padding:4px 0;
+    font-size:12.5px;cursor:pointer}
+  #datapanel{margin-top:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:10px}
+  #datapanel.hidden{display:none}
+  .dcard{border:1px solid var(--line);border-radius:9px;background:var(--panel);
+    padding:10px 12px;font-size:11.5px}
+  .dcard h4{margin:0 0 6px;font-size:12px;color:var(--accent)}
+  .dcard .grp{margin-top:8px;font-size:10.5px;color:var(--note);text-transform:uppercase;
+    letter-spacing:.3px}
+  .dcard table.dt{width:100%;border-collapse:collapse;margin:3px 0 2px;font-size:11px}
+  .dcard table.dt th{color:var(--note);font-weight:600;text-align:right;padding:2px 5px;
+    border-bottom:1px solid var(--line);font-size:10px;white-space:nowrap}
+  .dcard table.dt th:first-child{text-align:left}
+  .dcard table.dt td{padding:2px 5px;border-top:1px solid #1c2530;text-align:right;
+    color:var(--ink);white-space:nowrap}
+  .dcard table.dt td.rk{text-align:left;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <span class="dot" id="dot"></span>
+  <h1>Phoenix · Sequence Prototype</h1>
+  <span class="sub" id="status">connecting…</span>
+  <span class="sub" id="vlabel" style="margin-left:8px"></span>
+  <span id="llm" class="llm" style="margin-left:auto">LLM: …</span>
+</header>
+<div id="main">
+  <div id="leftpane">
+    <div id="chatwrap">
+      <div id="chatlog"></div>
+      <div id="chatrow">
+        <input id="chatin" type="text" autocomplete="off"
+          placeholder="Type to JARVIS — e.g. CUST-002 wants 1500 MT D777C export, load next month H1, AFP 1234   ·   or 'how much stock for D388C?'">
+        <button id="chatsend">Send</button>
+      </div>
+    </div>
+    <div id="llmpanel"></div>
+  </div>
+  <div id="rightpane">
+    <div class="bar" id="bar"><span class="sub">loading variants…</span></div>
+    <div id="datawrap">
+      <button id="datatoggle">▸ Agent data — what your inquiry runs against</button>
+      <div id="datapanel" class="hidden"></div>
+    </div>
+    <div id="banner"></div>
+    <div id="head"><svg id="hsvg" viewBox="0 0 1320 52" preserveAspectRatio="xMidYMid meet"></svg></div>
+    <div id="stage"><svg id="svg" viewBox="0 0 1320 120" preserveAspectRatio="xMidYMin meet"></svg></div>
+  </div>
+</div>
+
+<script>
+const ACTORS = ["Sales","JARVIS","SAGE","Workflow","ORACLE","APOLLO","SKYNET","WALLET","T-800","SIGMA-TEMPO","ATLAS"];
+const SVGNS = "http://www.w3.org/2000/svg";
+const W = 1320, MARGIN = 76, Y0 = 28, ROW = 54, BOXW = 100, BOXH = 34;
+const laneX = {};
+const hsvg = document.getElementById("hsvg");   // sticky header (actor boxes)
+const svg  = document.getElementById("svg");    // scrolling body (lifelines + arrows)
+let rows = 0, busy = false;
+
+function colX(i){ return MARGIN + i*( (W-2*MARGIN) / (ACTORS.length-1) ); }
+ACTORS.forEach((a,i)=> laneX[a]=colX(i));
+
+function el(tag, attrs){ const e=document.createElementNS(SVGNS,tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+// actor boxes live in the sticky header SVG — drawn once, never scroll away
+function drawHead(){
+  hsvg.innerHTML = "";
+  ACTORS.forEach((a)=>{
+    const x = laneX[a];
+    const g = el("g",{class:"actor"});
+    g.appendChild(el("rect",{x:x-BOXW/2,y:9,width:BOXW,height:BOXH,rx:8}));
+    const t = el("text",{x:x,y:9+BOXH/2+4,"text-anchor":"middle"}); t.textContent=a;
+    g.appendChild(t);
+    hsvg.appendChild(g);
+  });
+}
+
+// body holds the lifelines + arrow rows; reset on each run
+function resetBody(){
+  svg.innerHTML = "";
+  ACTORS.forEach((a)=>{
+    const x = laneX[a];
+    const ll = el("line",{class:"lifeline",x1:x,y1:0,x2:x,y2:120});
+    ll.dataset.actor=a;
+    svg.appendChild(ll);
+  });
+  rows = 0; setHeight(120);
+}
+
+function setHeight(h){
+  const H = Math.max(120,h);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.querySelectorAll(".lifeline").forEach(l=> l.setAttribute("y2", H-8));
+}
+
+function addEvent(ev){
+  const y = Y0 + rows*ROW;
+  const x1 = laneX[ev.from], x2 = laneX[ev.to];
+  const bad = (ev.label||"").startsWith("x ") || (ev.label||"").startsWith("✗");
+  const kind = bad ? "bad" : (ev.kind==="call" ? "call" : "ret");
+  const g = el("g",{class:"row"});
+  const midX = (x1+x2)/2;
+  const lbl = el("text",{class:"lbl"+(bad?" bad":""),x:midX,y:y-7,"text-anchor":"middle"});
+  lbl.textContent = ev.label;
+  g.appendChild(lbl);
+  g.appendChild(el("line",{class:"arrow "+kind,x1:x1,y1:y,x2:x2,y2:y}));
+  const dir = x2>=x1 ? 1 : -1, hx = x2 - dir*9;
+  const col = bad?"var(--bad)":(ev.kind==="call"?"var(--call)":"var(--ok)");
+  g.appendChild(el("polygon",{class:"head",
+    points:`${x2},${y} ${hx},${y-5} ${hx},${y+5}`, fill:col}));
+  svg.appendChild(g);
+  rows++; setHeight(Y0 + rows*ROW + 20);
+  const rp=document.getElementById("rightpane");
+  if(rp) rp.scrollTo({top:rp.scrollHeight,behavior:"smooth"});
+}
+
+function addDivider(label){
+  const y = Y0 + rows*ROW - 16;
+  const g = el("g",{class:"row"});
+  g.appendChild(el("line",{x1:MARGIN-40,y1:y,x2:W-MARGIN+40,y2:y,
+    stroke:"var(--note)","stroke-width":1,"stroke-dasharray":"2 4",opacity:".5"}));
+  const t = el("text",{x:W/2,y:y-4,"text-anchor":"middle",
+    fill:"var(--note)","font-size":"11"});
+  t.textContent = "— "+label+" —"; g.appendChild(t);
+  svg.appendChild(g);
+  rows += 0.6; setHeight(Y0 + rows*ROW + 20);
+}
+
+function banner(d){
+  const b = document.getElementById("banner");
+  b.className = "show " + (d.ok ? "ok" : "bad");
+  const mark = d.ok ? "✓" : "✗";
+  b.innerHTML = `<div class="t">${mark} ${d.title}</div>`+
+                `<div class="m">${d.detail||""}</div>`;
+}
+
+// ---- WebSocket ----
+let ws;
+function connect(){
+  const proto = location.protocol==="https:"?"wss":"ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = ()=>{ setConn(true); };
+  ws.onclose = ()=>{ setConn(false); setBusy(false); setTimeout(connect,1500); };
+  ws.onmessage = (m)=>{
+    const d = JSON.parse(m.data);
+    if(d.kind==="chat"){ addChat(d); }
+    else if(d.kind==="choices"){ addChoices(d); setBusy(false); }
+    else if(d.kind==="llm"){ addLlm(d); }
+    else if(d.kind==="start"){
+      if(d.reset!==false){ resetBody();
+        document.getElementById("banner").className="";
+        document.getElementById("llmpanel").innerHTML=""; }
+      else { addDivider(d.label); }      // continue: keep prior rows, mark a phase
+      document.getElementById("vlabel").textContent = "› "+d.label; setBusy(true); }
+    else if(d.kind==="done"){ banner(d); setBusy(false); }
+    else if(d.kind==="error"){ setBusy(false); }
+    else { addEvent(d); }   // a call/ret event
+  };
+}
+function addLlm(d){
+  const panel=document.getElementById("llmpanel");
+  const card=document.createElement("div"); card.className="llmcard";
+  const on=d.used; const tag=on?"on":"off"; const word=on?"LLM CALL":"NO LLM CALL";
+  card.innerHTML =
+    `<div class="hd"><span class="tag ${tag}">${word}</span>`+
+    `<span class="stage">${escapeHtml(d.stage||"")}</span>`+
+    `<span class="model">${escapeHtml(d.model||"")}</span>`+
+    `<button class="llmtoggle" type="button">ดูข้อมูล</button></div>`+
+    `<div class="llmbody">`+
+    `<div class="pl">prompt</div><pre>${escapeHtml(d.prompt||"")}</pre>`+
+    `<div class="pl">response</div><pre>${escapeHtml(d.response||"")}</pre>`+
+    `</div>`;
+  panel.appendChild(card);
+  const btn=card.querySelector(".llmtoggle"), body=card.querySelector(".llmbody");
+  btn.onclick=()=>{ const open=body.classList.toggle("open");
+                    btn.textContent=open?"ซ่อน":"ดูข้อมูล"; };
+}
+function addChat(d){
+  const log = document.getElementById("chatlog");
+  if(d.role==="user"){
+    document.getElementById("llmpanel").innerHTML="";
+    document.getElementById("banner").className="";
+  }
+  const el = document.createElement("div");
+  if(d.role==="user"){
+    el.className="msg user";
+    el.innerHTML = `<div class="who">you → JARVIS</div>${escapeHtml(d.text)}`;
+  } else {
+    el.className="msg jarvis";
+    el.innerHTML = `<div class="who">JARVIS · ${escapeHtml(d.stage||"intent routing")} `+
+      `<span class="badge ${d.via}">[${d.via}]</span></div>`+
+      `${escapeHtml(d.text).replace(/\n/g,"<br>")}`;
+  }
+  log.appendChild(el);
+  log.scrollTop = log.scrollHeight;
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function setConn(on){
+  document.getElementById("dot").classList.toggle("on",on);
+  document.getElementById("status").textContent = on?"connected":"reconnecting…";
+}
+function setBusy(b){ busy=b;
+  document.querySelectorAll("#bar button").forEach(x=> x.disabled = b && x.id!=="clear");
+  const ci=document.getElementById("chatin"), cs=document.getElementById("chatsend");
+  if(ci) ci.disabled=b; if(cs) cs.disabled=b; }
+
+function run(variant){ if(busy||!ws||ws.readyState!==1) return;
+  ws.send(JSON.stringify({variant})); }
+
+function sendText(text){
+  if(!ws||ws.readyState!==1) return;
+  document.querySelectorAll(".choicebtn").forEach(b=>b.disabled=true);
+  ws.send(JSON.stringify({text}));
+}
+function addChoices(d){
+  const log=document.getElementById("chatlog");
+  const wrap=document.createElement("div"); wrap.className="choicewrap";
+  d.options.forEach(o=>{
+    const b=document.createElement("button"); b.className="choicebtn";
+    b.textContent=o.label; b.onclick=()=>sendText(o.id);
+    wrap.appendChild(b);
+  });
+  log.appendChild(wrap); log.scrollTop=log.scrollHeight;
+}
+
+function sendChat(){
+  if(busy||!ws||ws.readyState!==1) return;
+  const ci=document.getElementById("chatin");
+  const text=ci.value.trim(); if(!text) return;
+  ci.value="";
+  ws.send(JSON.stringify({text}));
+}
+
+async function loadData(){
+  const panel=document.getElementById("datapanel");
+  let d; try{ d=await (await fetch("/data")).json(); }catch{ return; }
+  panel.innerHTML = d.agents.map(renderAgent).join("");
+}
+function renderSection(name, obj){
+  const entries = Object.entries(obj||{});
+  if(!entries.length) return "";
+  const nested = entries.some(([k,v])=> v && typeof v==="object");
+  let head="", body="";
+  if(nested){
+    const cols=[];
+    entries.forEach(([k,v])=>{ if(v&&typeof v==="object")
+      Object.keys(v).forEach(c=>{ if(!cols.includes(c)) cols.push(c); }); });
+    head = `<tr><th></th>${cols.map(c=>`<th>${escapeHtml(c)}</th>`).join("")}</tr>`;
+    body = entries.map(([k,v])=>{
+      const cells = cols.map(c=>`<td>${escapeHtml(String(v&&v[c]!=null?v[c]:"—"))}</td>`).join("");
+      return `<tr><td class="rk">${escapeHtml(k)}</td>${cells}</tr>`;
+    }).join("");
+  } else {
+    body = entries.map(([k,v])=>
+      `<tr><td class="rk">${escapeHtml(k)}</td><td>${escapeHtml(String(v))}</td></tr>`).join("");
+  }
+  return `<div class="grp">${escapeHtml(name)}</div><table class="dt">${head}${body}</table>`;
+}
+function renderAgent(a){
+  let body="";
+  for(const [key,val] of Object.entries(a)){
+    if(key==="title") continue;
+    if(val && typeof val==="object") body += renderSection(key, val);
+  }
+  return `<div class="dcard"><h4>${escapeHtml(a.title||"")}</h4>${body}</div>`;
+}
+
+async function loadLlmStatus(){
+  const badge=document.getElementById("llm");
+  try{
+    const s=await (await fetch("/llm-status")).json();
+    if(s.key_present){ badge.className="llm on";
+      badge.textContent=`LLM: ${s.provider} · live`; }
+    else{ badge.className="llm off";
+      badge.textContent=`LLM: ${s.provider} · rules mode (no ${s.key_env})`; }
+  }catch{ badge.className="llm off"; badge.textContent="LLM: unknown"; }
+}
+
+async function loadVariants(){
+  const bar = document.getElementById("bar");
+  let v;
+  try{ v = await (await fetch("/variants")).json(); }
+  catch{ v = {"happy-path":"","mode-b":"","flag-on":"","no-carrier":"","fail-credit":"","shortfall":""}; }
+  bar.innerHTML = "";
+  Object.entries(v).forEach(([name,desc])=>{
+    const btn = document.createElement("button");
+    btn.textContent = name;
+    btn.title = desc;            // hover shows the scenario description
+    btn.onclick = ()=> run(name);
+    bar.appendChild(btn);
+  });
+  const clr = document.createElement("button");
+  clr.id="clear"; clr.textContent="clear";
+  clr.onclick = ()=>{ resetBody(); document.getElementById("banner").className="";
+    document.getElementById("vlabel").textContent=""; };
+  bar.appendChild(clr);
+}
+
+drawHead(); resetBody(); loadVariants(); loadLlmStatus(); loadData(); connect();
+document.getElementById("chatsend").onclick = sendChat;
+document.getElementById("chatin").addEventListener("keydown", e=>{ if(e.key==="Enter") sendChat(); });
+document.getElementById("datatoggle").onclick = ()=>{
+  const p=document.getElementById("datapanel"), t=document.getElementById("datatoggle");
+  const hidden=p.classList.toggle("hidden");
+  t.textContent=(hidden?"▸":"▾")+" Agent data — what your inquiry runs against";
+};
+</script>
+</body>
+</html>

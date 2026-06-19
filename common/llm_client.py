@@ -164,12 +164,58 @@ class ClaudeClient:
 # THE SWAP POINT — change provider here (or via env PHOENIX_LLM=gemini|claude)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Provider resolution (one place, used by get_llm AND the readiness checks)
+# ---------------------------------------------------------------------------
+
+def resolve_provider() -> str:
+    """Which provider to use. Explicit PHOENIX_LLM wins; otherwise auto-detect
+    from whichever REAL API key is present (so 'I have a key in env' just works;
+    placeholder values are ignored)."""
+    explicit = os.environ.get("PHOENIX_LLM")
+    if explicit:
+        return explicit.lower()
+    if _looks_like_real_key(os.environ.get("GEMINI_API_KEY")):
+        return "gemini"
+    if _looks_like_real_key(os.environ.get("ANTHROPIC_API_KEY")):
+        return "claude"
+    return "gemini"   # default; will report 'no key' if none set
+
+
+def key_env_for(provider: str) -> str:
+    return "GEMINI_API_KEY" if provider == "gemini" else "ANTHROPIC_API_KEY"
+
+
+def _looks_like_real_key(val: str | None) -> bool:
+    """A non-empty value that isn't an obvious placeholder from .env.example."""
+    if not val:
+        return False
+    v = val.strip().strip("\"'").lower()
+    if not v:
+        return False
+    placeholders = ("your_", "api_key_here", "xxxx", "<", "changeme",
+                    "paste", "todo", "example", "...")
+    if any(p in v for p in placeholders):
+        return False
+    if len(set(v)) <= 2:           # e.g. "xxxxxxxx" / "aaaa"
+        return False
+    return True
+
+
+def llm_ready() -> tuple[bool, str, str]:
+    """(real_key_present, provider, key_env_var_name) — for status + gating.
+    A placeholder value (e.g. 'your_..._here', 'xxxx') counts as NOT present."""
+    provider = resolve_provider()
+    env_var = key_env_for(provider)
+    return _looks_like_real_key(os.environ.get(env_var)), provider, env_var
+
+
 def get_llm(role: str = "fast") -> LLMClient:
     """
     role="fast"  -> cheap/quick model (Jarvis intent routing)
     role="deep"  -> stronger model   (Skynet FEAS / negotiation reasoning)
     """
-    provider = os.environ.get("PHOENIX_LLM", "gemini").lower()
+    provider = resolve_provider()
 
     if provider == "gemini":
         default_model = "gemini-2.5-flash" if role == "fast" else "gemini-2.5-pro"
